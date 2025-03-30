@@ -8,6 +8,9 @@ Geometric computations in Python, using SageMath. Supports connections on Rieman
 
 Additionally, the Riemann curvature, Ricci curvature, scalar curvature, sectional curvature, and torsion are implemented.
 
+## Installation
+gepy depends on SageMath, see [installation instructions](https://doc.sagemath.org/html/en/installation/).
+
 ## Usage
 TODO
 
