@@ -23,12 +23,24 @@ class GePy:
         self.eu = self.ed.dual_basis() # orthonormal coframe 
         self.xd = M.frames()[0] # coordinate frame
         self.xu = self.xd.dual_basis() # ooordinate coframe
+        # if complex manifold, parse complex structure, check integrability, compute fundamental 2-form, 
+        if complex_structure:
+            self.complex_parsing()
+
+
+    def complex_parsing(self):
         # parse the complex structure
         self.J = M.tensor_field(1, 1, name='J')
         for i in range(self.n):
             for j in range(self.n):
                 self.J[i, j] = complex_structure[i][j]
         print("Complex structure integrable:", self.is_integrable(self.J))
+        # compute fundamental 2-form
+        self.F = M.diff_form(Integer(2), name="F")
+        for i in range(DIM):
+            for j in range(DIM):
+                F[ed, i, j] = g(J(ed[i]), ed[j])
+        self.dF = F.derivative()
 
 
     def nijenhuis(self, X, Y):
