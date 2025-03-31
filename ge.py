@@ -105,4 +105,5 @@ if __name__ == "__main__":
     ARGS = parse_arguments()
     DIM, FRAME, COMPLEX_STRUCTURE = parse_json(ARGS.jsonfile)
     GEPY = GePy(DIM, FRAME, COMPLEX_STRUCTURE, ARGS.connection)
+    # TODO: implement all Ricci curvatures for Chern connection
 
