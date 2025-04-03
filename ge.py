@@ -11,37 +11,52 @@ class GePy:
         # setup init self variables
         self.n = n
         # setup manifold with coordinates and as parallelizable
-        M = Manifold(Integer(self.n), 'M', field="real")
+        self.M = Manifold(Integer(self.n), 'M', field="real")
         x = tuple(f"x{i}" for i in range(self.n))
-        U = M.chart(names=x)
+        U = self.M.chart(names=x)
         x = U._first_ngens(self.n) # makes M parallelizable
         # parse the orthonormal frame 
-        frame = M.automorphism_field()
+        frame = self.M.automorphism_field()
         frame[:] = matrix(self.n, self.n, lambda i, j: sage_eval(frame_matrix[i][j], locals={'x':x}))
         # orthonormal frame and coframe to self
-        self.ed = M.default_frame().new_frame(frame, 'e') # orthonormal frame
+        self.ed = self.M.default_frame().new_frame(frame, 'e') # orthonormal frame
         self.eu = self.ed.dual_basis() # orthonormal coframe 
-        self.xd = M.frames()[0] # coordinate frame
+        self.xd = self.M.frames()[0] # coordinate frame
         self.xu = self.xd.dual_basis() # ooordinate coframe
+        # compute metric for orthonormal basis
+        self.g = self.M.metric('g')
+        self.g[self.ed,:] = identity_matrix(self.n)
         # if complex manifold, parse complex structure, check integrability, compute fundamental 2-form, 
         if complex_structure:
-            self.complex_parsing()
+            self.complex_parsing(complex_structure)
 
 
-    def complex_parsing(self):
+    def complex_parsing(self, complex_structure):
         # parse the complex structure
-        self.J = M.tensor_field(1, 1, name='J')
+        self.J = self.M.tensor_field(1, 1, name='J')
         for i in range(self.n):
             for j in range(self.n):
                 self.J[i, j] = complex_structure[i][j]
         print("Complex structure integrable:", self.is_integrable(self.J))
         # compute fundamental 2-form
-        self.F = M.diff_form(Integer(2), name="F")
-        for i in range(DIM):
-            for j in range(DIM):
-                F[ed, i, j] = g(J(ed[i]), ed[j])
-        self.dF = F.derivative()
+        self.F = self.M.diff_form(Integer(2), name="F")
+        for i in range(self.n):
+            for j in range(self.n):
+                self.F[self.ed, i, j] = self.g(self.J(self.ed[i]), self.ed[j])
+        self.dF = self.F.derivative()
+        # compute torsion form
+        self.JdF = self.M.diff_form(Integer(3), name="JdF")
+        for i in range(self.n):
+            for j in range(i+1, self.n):
+                for k in range(j+1, self.n):
+                    self.JdF[self.ed, i, j, k] = self.dF(self.J(self.ed[i]), self.J(self.ed[j]), self.J(self.ed[k]))
+        print("SKT:", self.is_SKT())
 
+
+    def is_SKT(self):
+        assert self.JdF.degree() == 3
+        return self.JdF.derivative() == 0
+        
 
     def nijenhuis(self, X, Y):
         """
