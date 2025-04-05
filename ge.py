@@ -7,7 +7,7 @@ class GePy:
     """
     main functionality, to perform all computations in Sage
     """
-    def __init__(self, n, frame_matrix, complex_structure, connection="lc"):
+    def __init__(self, n, frame_matrix):
         # setup init self variables
         self.n = n
         # setup manifold with coordinates and as parallelizable
@@ -23,12 +23,25 @@ class GePy:
         self.eu = self.ed.dual_basis() # orthonormal coframe 
         self.xd = self.M.frames()[0] # coordinate frame
         self.xu = self.xd.dual_basis() # ooordinate coframe
-        # compute metric for orthonormal basis
+
+
+    def compute_metric(self):
         self.g = self.M.metric('g')
         self.g[self.ed,:] = identity_matrix(self.n)
-        # if complex manifold, parse complex structure, check integrability, compute fundamental 2-form, 
-        if complex_structure:
-            self.complex_parsing(complex_structure)
+
+
+    def gauduchon_connection(self, t):
+        self.nab_t = self.M.affine_connection("nab_t")
+
+        for i in range(self.n):
+            for j in range(self.n):
+                for k in range(self.n):
+                    self.nab_t[self.ed,i,j,k] = self.nab[self.ed,i,j,k] - ((1-t)/4)*self.dF(self.J(self.ed[i]),self.J(self.ed[j]),self.J(self.ed[k])) + \
+                            ((1+t)/4)*self.dF(self.J(self.ed[i]),self.ed[j],self.ed[k]) - (1/2)*self.nijenhuis(self.xd[i],self.xd[j]).contract(self.xu[k])
+
+
+    def levi_civita_connection(self):
+        self.nab = self.g.connection()
 
 
     def complex_parsing(self, complex_structure):
@@ -44,6 +57,7 @@ class GePy:
             for j in range(self.n):
                 self.F[self.ed, i, j] = self.g(self.J(self.ed[i]), self.ed[j])
         self.dF = self.F.derivative()
+        print("Kahler:", self.dF == 0)
         # compute torsion form
         self.JdF = self.M.diff_form(Integer(3), name="JdF")
         for i in range(self.n):
@@ -131,6 +145,17 @@ def parse_json(filename):
 if __name__ == "__main__":
     ARGS = parse_arguments()
     DIM, FRAME, COMPLEX_STRUCTURE = parse_json(ARGS.jsonfile)
-    GEPY = GePy(DIM, FRAME, COMPLEX_STRUCTURE, ARGS.connection)
+    GEPY = GePy(DIM, FRAME)
+    # compute metric for orthonormal basis
+    GEPY.compute_metric()
+    # if complex manifold, parse complex structure, check integrability, compute fundamental 2-form, 
+    if COMPLEX_STRUCTURE:
+        GEPY.complex_parsing(COMPLEX_STRUCTURE)
+    # compute the Levi-Civita connection
+    GEPY.levi_civita_connection()
+    # compute Gauduchon connection if specified
+    if ARGS.connection == "gauduchon":
+        self.gauduchon_connection(ARGS.t)
+
     # TODO: implement all Ricci curvatures for Chern connection
 
