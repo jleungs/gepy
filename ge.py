@@ -158,4 +158,5 @@ if __name__ == "__main__":
         self.gauduchon_connection(ARGS.t)
 
     # TODO: implement all Ricci curvatures for Chern connection
+    # TODO: add more asserts
 
