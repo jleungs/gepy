@@ -6,7 +6,12 @@ Geometric computations in Python, using SageMath. Supports connections on Rieman
   - `t=0` first canonical connection
   - `t=1` Chern connection
 
-Additionally, the Riemann curvature, Ricci curvature, scalar curvature, sectional curvature, and torsion are implemented.
+For the given connection, compute:
+- curvature
+- Ricci curvature
+- scalar curvature
+- sectional curvature
+- torsion 
 
 ## Installation
 gepy depends on SageMath, see [installation instructions](https://doc.sagemath.org/html/en/installation/) as it varies from operating systems.
@@ -21,3 +26,5 @@ brew install sage # macOS Homebrew
 ## Usage
 TODO
 
+
+TODO: add jupyter notebook

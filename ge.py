@@ -35,18 +35,37 @@ class GePy:
 
 
     def compute_curvature(self, nabla):
-        assert type(nabla) is sg.sage.manifolds.differentiable.affine_connection.AffineConnection
+        assert type(nabla) is sg.sage.manifolds.differentiable.affine_connection.AffineConnection or\
+                sg.sage.manifolds.differentiable.levi_civita_connection.LeviCivitaConnection
         return nabla.riemann()
 
 
     def compute_ricci_curvature(self, nabla):
-        assert type(nabla) is sg.sage.manifolds.differentiable.affine_connection.AffineConnection
+        assert type(nabla) is sg.sage.manifolds.differentiable.affine_connection.AffineConnection or\
+                sg.sage.manifolds.differentiable.levi_civita_connection.LeviCivitaConnection
         return nabla.ricci()
 
 
     def compute_scalar_curvature(self, nabla):
-        assert type(nabla) is sg.sage.manifolds.differentiable.affine_connection.AffineConnection
+        assert type(nabla) is sg.sage.manifolds.differentiable.affine_connection.AffineConnection or\
+                sg.sage.manifolds.differentiable.levi_civita_connection.LeviCivitaConnection
         return sum( self.g.inverse()[i,j]*nabla.ricci()[i,j] for i in range(self.n) for j in range(self.n) )
+
+
+    def compute_sectional_curvature(self, nabla):
+        assert type(nabla) is sg.sage.manifolds.differentiable.affine_connection.AffineConnection or\
+                sg.sage.manifolds.differentiable.levi_civita_connection.LeviCivitaConnection
+        sectional_curvature = dict()
+        for i in range(self.n):
+            for j in range(i+1, self.n):
+                sectional_curvature[(i,j)] = nabla.riemann()[i,j,j,i] / (self.g[i,i]*self.g[j,j] - self.g[i,j]**2)
+        return sectional_curvature
+
+
+    def compute_torsion(self, nabla):
+        assert type(nabla) is sg.sage.manifolds.differentiable.affine_connection.AffineConnection or\
+                sg.sage.manifolds.differentiable.levi_civita_connection.LeviCivitaConnection
+        return nabla.torsion()
 
 
     def compute_metric(self):
@@ -122,6 +141,8 @@ def parse_arguments():
     parser.add_argument("-R", "--curvature", action="store_true", help="Compute the Riemann curvature tensor for the connection specified in '-c'")
     parser.add_argument("-r", "--ricci", action="store_true", help="Compute the Ricci curvature for the connection specified in '-c'")
     parser.add_argument("-s", "--scalar", action="store_true", help="Compute the scalar curvature for the connection specified in '-c'")
+    parser.add_argument("-S", "--sectional", action="store_true", help="Compute the sectional curvature for the connection specified in '-c'")
+    parser.add_argument("-T", "--torsion", action="store_true", help="Compute the torsion for the connection specified in '-c'")
 
     args = parser.parse_args()
 
@@ -194,6 +215,14 @@ if __name__ == "__main__":
     if ARGS.scalar:
         SCALAR = GEPY.compute_scalar_curvature(NABLA)
         print("Scalar curvature:", SCALAR)
+    if ARGS.sectional:
+        SECTIONAL = GEPY.compute_sectional_curvature(NABLA)
+        print("Sectional curvature:")
+        for s in SECTIONAL:
+            print(s, SECTIONAL[s])
+    if ARGS.torsion:
+        TORSION = GEPY.compute_torsion(NABLA)
+        print("Torsion:", TORSION.display())
 
     # TODO: implement first and second Ricci curvatures for Gauduchon connection
     # TODO: add more asserts
