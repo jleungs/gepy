@@ -1,7 +1,6 @@
 import argparse
 import json
-from sys import argv
-from sage.all import *
+import sage.all as sg
 
 class GePy:
     """
@@ -11,13 +10,13 @@ class GePy:
         # setup init self variables
         self.n = n
         # setup manifold with coordinates and as parallelizable
-        self.M = Manifold(Integer(self.n), 'M', field="real")
+        self.M = sg.Manifold(sg.Integer(self.n), "M", field="real")
         x = tuple(f"x{i}" for i in range(self.n))
         U = self.M.chart(names=x)
         x = U._first_ngens(self.n) # makes M parallelizable
         # parse the orthonormal frame 
         frame = self.M.automorphism_field()
-        frame[:] = matrix(self.n, self.n, lambda i, j: sage_eval(frame_matrix[i][j], locals={'x':x}))
+        frame[:] = sg.matrix(self.n, self.n, lambda i, j: sg.sage_eval(frame_matrix[i][j], locals={'x':x}))
         # orthonormal frame and coframe to self
         self.ed = self.M.default_frame().new_frame(frame, 'e') # orthonormal frame
         self.eu = self.ed.dual_basis() # orthonormal coframe 
@@ -25,9 +24,34 @@ class GePy:
         self.xu = self.xd.dual_basis() # ooordinate coframe
 
 
+    def get_connection(self, connection_name):
+        assert type(self.nab) is sg.sage.manifolds.differentiable.levi_civita_connection.LeviCivitaConnection
+        if connection_name == "levicivita":
+            return self.nab
+        assert type(self.nab_t) is sg.sage.manifolds.differentiable.affine_connection.AffineConnection
+        if connection_name == "gauduchon":
+            return self.nab_t
+        return None
+
+
+    def compute_curvature(self, nabla):
+        assert type(nabla) is sg.sage.manifolds.differentiable.affine_connection.AffineConnection
+        return nabla.riemann()
+
+
+    def compute_ricci_curvature(self, nabla):
+        assert type(nabla) is sg.sage.manifolds.differentiable.affine_connection.AffineConnection
+        return nabla.ricci()
+
+
+    def compute_scalar_curvature(self, nabla):
+        assert type(nabla) is sg.sage.manifolds.differentiable.affine_connection.AffineConnection
+        return sum( self.g.inverse()[i,j]*nabla.ricci()[i,j] for i in range(self.n) for j in range(self.n) )
+
+
     def compute_metric(self):
         self.g = self.M.metric('g')
-        self.g[self.ed,:] = identity_matrix(self.n)
+        self.g[self.ed,:] = sg.identity_matrix(self.n)
 
 
     def gauduchon_connection(self, t):
@@ -50,16 +74,16 @@ class GePy:
         for i in range(self.n):
             for j in range(self.n):
                 self.J[i, j] = complex_structure[i][j]
-        print("Complex structure integrable:", self.is_integrable(self.J))
+        print("Complex structure integrable:", self.is_integrable())
         # compute fundamental 2-form
-        self.F = self.M.diff_form(Integer(2), name="F")
+        self.F = self.M.diff_form(sg.Integer(2), name="F")
         for i in range(self.n):
             for j in range(self.n):
                 self.F[self.ed, i, j] = self.g(self.J(self.ed[i]), self.ed[j])
         self.dF = self.F.derivative()
         print("Kahler:", self.dF == 0)
         # compute torsion form
-        self.JdF = self.M.diff_form(Integer(3), name="JdF")
+        self.JdF = self.M.diff_form(sg.Integer(3), name="JdF")
         for i in range(self.n):
             for j in range(i+1, self.n):
                 for k in range(j+1, self.n):
@@ -79,7 +103,7 @@ class GePy:
         return X.bracket(Y) + self.J(self.J(X).bracket(Y) + X.bracket(self.J(Y))) - self.J(X).bracket(Y)
 
 
-    def is_integrable(self, J):
+    def is_integrable(self):
         """
         check if provided almost complex structure is integrable using Nijenhuis tensor
         """
@@ -95,6 +119,9 @@ def parse_arguments():
     parser.add_argument("jsonfile")
     parser.add_argument("-c", "--connection", choices=["levicivita","gauduchon"], type=str, help="Connection to compute and utilise, default is Levi-Civita")
     parser.add_argument("-t", type=int, help="Parameter for the Gauduchon connection, e.g. '-t 1' is Chern connection)")
+    parser.add_argument("-R", "--curvature", action="store_true", help="Compute the Riemann curvature tensor for the connection specified in '-c'")
+    parser.add_argument("-r", "--ricci", action="store_true", help="Compute the Ricci curvature for the connection specified in '-c'")
+    parser.add_argument("-s", "--scalar", action="store_true", help="Compute the scalar curvature for the connection specified in '-c'")
 
     args = parser.parse_args()
 
@@ -155,8 +182,19 @@ if __name__ == "__main__":
     GEPY.levi_civita_connection()
     # compute Gauduchon connection if specified
     if ARGS.connection == "gauduchon":
-        self.gauduchon_connection(ARGS.t)
+        GEPY.gauduchon_connection(ARGS.t)
+    # compute curvatures
+    NABLA = GEPY.get_connection(ARGS.connection)
+    if ARGS.curvature:
+        CURVATURE = GEPY.compute_curvature(NABLA)
+        print("Riemann curvature tensor:", CURVATURE.display())
+    if ARGS.ricci:
+        RICCI = GEPY.compute_ricci_curvature(NABLA)
+        print("Ricci curvature:", RICCI.display())
+    if ARGS.scalar:
+        SCALAR = GEPY.compute_scalar_curvature(NABLA)
+        print("Scalar curvature:", SCALAR)
 
-    # TODO: implement all Ricci curvatures for Chern connection
+    # TODO: implement first and second Ricci curvatures for Gauduchon connection
     # TODO: add more asserts
 
